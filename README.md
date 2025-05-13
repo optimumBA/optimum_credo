@@ -7,7 +7,7 @@ Add the `:optimum_credo` package to your `mix.exs` dependencies:
 ```elixir
 def deps do
   [
-    {:optimum_credo, "~> 0.1", github: "optimumBA/optimum_credo", only: :test, runtime: false},
+    {:optimum_credo, "~> 0.1", only: :test, runtime: false},
   ]
 end
 ```
@@ -23,3 +23,11 @@ For example:
 ```
 
 Then you can run `mix credo` per usual.
+
+### Available rules
+
+```elixir
+OptimumCredo.Check.Readability.DepsOrder
+OptimumCredo.Check.Readability.ImportOrder
+OptimumCredo.Check.Readability.TypespecOrder
+```
