@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 (2026-03-31)
+
+- Added `LiveViewBareMatch` check to catch bare `{:ok, _} =` and `{:error, _} =` pattern matches in LiveView modules, preventing silent process crashes on failed Ecto operations.
+
 ## 0.2.0 (2026-03-13)
 
 - Added 6 new readability checks: `DocumentationFormatting`, `ExtractableSpecTypes`, `ModuleOrganization`, `PrivateFunctionSpecs`, `UnusedTypes`, and `VerboseAssertions`.
