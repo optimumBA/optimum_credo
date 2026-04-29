@@ -211,6 +211,30 @@ Enforces alphabetical ordering of import statements.
 
 Enforces alphabetical ordering of typespec definitions.
 
+#### EmptySetupBlock
+
+Detects empty `setup` blocks in test files (`setup do :ok end`, `setup do end`, `setup do {:ok, %{}} end`) that add noise without providing test setup value. File-scoped to `*_test.exs` files and `test/support/`.
+
+### Warning
+
+#### SkippedTest
+
+Detects `@tag :skip`, `@tag skip: true`, `@moduletag :skip`, and related annotations that hide failing tests. Supports an `allow_with_comment: true` param to exempt tags that carry an inline explanatory comment.
+
+#### RuntimeEnvDevDefault
+
+Detects `System.get_env("VAR", "/Users/...")` calls in `config/runtime.exs` where the default is a developer-machine path (`/Users/`, `/home/`, `~/`). Such defaults silently break on production servers. File-scoped to `config/runtime.exs`.
+
+### Refactoring
+
+#### LiveViewBareMatch
+
+Detects bare `{:ok, _} =` and `{:error, _} =` pattern matches in LiveView modules that crash the process on failure.
+
+#### CaseTrueFalse
+
+Detects `case` expressions with exactly two clauses matching literal `true` and `false` (no wildcards), suggesting replacement with an `if` expression for clarity.
+
 ## Benefits
 
 1. **Reduces Manual Review Cycles**: Catches trivial formatting issues automatically
