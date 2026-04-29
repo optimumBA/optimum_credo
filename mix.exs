@@ -2,7 +2,7 @@ defmodule OptimumCredo.MixProject do
   use Mix.Project
 
   @repo "https://github.com/optimumBA/optimum_credo"
-  @version "0.3.0"
+  @version "0.4.0"
 
   @spec project() :: keyword()
   def project do
