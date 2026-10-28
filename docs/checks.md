@@ -1,7 +1,7 @@
 # OptimumCredo checks
 
 These 74 checks are explicitly enabled through `.credo.exs`; see
-[the example configuration](configuration.md). This catalog describes the 0.5.0 release candidate.
+[the example configuration](configuration.md). This catalog describes version 0.5.0.
 Each module documents its detection boundaries, examples and parameters.
 Heuristic findings are advice, not proof that code is incorrect. Review findings
 before deciding whether a check should fail your application's CI.

@@ -3,7 +3,8 @@
 Custom Credo checks for Elixir code-review conventions: module organization,
 readability, test design, Phoenix, migrations, configuration and Ash.
 
-This working tree contains unreleased checks; publication is pending.
+Version **0.5.0** moves three previously published checks to KogenCredo. Read
+the [migration guide](docs/migration.md) before upgrading.
 
 ## Start here
 
@@ -11,15 +12,21 @@ This working tree contains unreleased checks; publication is pending.
 - [Explicit configuration example](docs/configuration.md): all available checks;
   select the checks and parameters that fit your application.
 - [Migration guide](docs/migration.md): checks extracted into KogenCredo.
-- [Changelog](CHANGELOG.md): released changes and unreleased work.
+- [Changelog](CHANGELOG.md): version history and release changes.
 
 ## Installation
+
+Add the Hex dependency:
+
+```elixir
+{:optimum_credo, "~> 0.5.0", only: [:dev, :test], runtime: false}
+```
 
 Requires Credo 1.7.19 or newer in the 1.x series. When adopting this version,
 update Credo together with it; an older locked Credo does not provide the token
 metadata these checks need, and older releases cannot lint Elixir 1.20 reliably.
 
-Until publication, use a sibling checkout:
+For development with a sibling checkout:
 
 ```elixir
 defp deps do
@@ -105,14 +112,6 @@ outside its static scope. `DescribeWithoutErrorCase` accepts a concrete document
 boundary inside one describe via `@describetag error_path_exemption: "reason"`.
 Use that only for total operations or to identify separate failure coverage;
 missing meaningful failure tests should be added instead.
-
-The checked-in self-lint policy passes `mix credo --strict` with no findings.
-Test/format/compile success does not by itself establish lint success, so run all
-four commands above before publishing a change.
-
-Each check has tests for violations and valid lookalikes. Run the suite on the
-supported Elixir versions before publishing a change, especially when the parser's
-AST metadata changes. Keep private review material out of shipped examples.
 
 Folder map: `lib/optimum_credo/check/` owns detectors; other modules under
 `lib/optimum_credo/` own shared AST helpers; `test/` owns regression coverage;

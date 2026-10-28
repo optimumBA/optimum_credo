@@ -2,7 +2,7 @@
 
 OptimumCredo owns code-review conventions. KogenCredo owns generated-code failure
 patterns and test-gate integrity. The libraries are independent Credo dependencies.
-These versions are prepared locally; publication is pending.
+This guide describes the coordinated configuration migration.
 
 The following checks are moved with their tests and original copyright notice:
 
@@ -17,7 +17,7 @@ Both libraries require Credo 1.7.19 or newer in the 1.x series; update the
 consumer's locked Credo together with the library.
 
 Add KogenCredo as a separate dependency and change the enabled module names in
-`.credo.exs`. After KogenCredo is published, use:
+`.credo.exs`. Use:
 
 ```elixir
 {:kogen_credo, "~> 0.1.0", only: [:dev, :test], runtime: false}
