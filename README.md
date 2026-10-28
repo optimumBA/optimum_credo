@@ -261,3 +261,8 @@ mix test
 ## License
 
 This project is licensed under the MIT License.
+## KogenCredo extraction
+
+`EmptySetupBlock`, `RuntimeEnvDevDefault` and `SkippedTest` move to KogenCredo
+in the next release. Add KogenCredo and rename the enabled modules as described
+in the [migration guide](docs/migration.md). Publish Kogen before this extraction.

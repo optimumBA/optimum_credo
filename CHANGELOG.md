@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **BREAKING:** Moved `EmptySetupBlock`, `RuntimeEnvDevDefault` and `SkippedTest` to KogenCredo. See `docs/migration.md` for the required dependency and configuration changes.
+
 ## 0.4.0 (2026-04-29)
 
 - Added `SkippedTest` warning check to detect `@tag :skip`, `@tag skip: true`, and `@moduletag :skip` annotations that hide failing tests. Supports an `allow_with_comment` param to exempt tags annotated with an inline explanation.
