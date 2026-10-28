@@ -1,5 +1,5 @@
 defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
-  use Credo.Test.Case
+  use Credo.Test.Case, async: true
 
   alias OptimumCredo.Check.Readability.VerboseAssertions
 
@@ -30,7 +30,7 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
     |> to_source_file()
     |> run_check(VerboseAssertions)
     |> assert_issue(fn issue ->
-      assert issue.message =~ "Use `assert drop.id` instead of verbose nil comparison"
+      assert issue.message =~ "Use `refute is_nil(drop.id)` instead of verbose nil comparison"
     end)
   end
 
@@ -45,7 +45,7 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
     |> to_source_file()
     |> run_check(VerboseAssertions)
     |> assert_issue(fn issue ->
-      assert issue.message =~ "Use `refute user.name` instead of verbose nil comparison"
+      assert issue.message =~ "Use `assert is_nil(user.name)` instead of verbose nil comparison"
     end)
   end
 
@@ -60,7 +60,7 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
     |> to_source_file()
     |> run_check(VerboseAssertions)
     |> assert_issue(fn issue ->
-      assert issue.message =~ "Use `refute item.id` instead of verbose nil comparison"
+      assert issue.message =~ "Use `assert is_nil(item.id)` instead of verbose nil comparison"
     end)
   end
 
@@ -75,7 +75,7 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
     |> to_source_file()
     |> run_check(VerboseAssertions)
     |> assert_issue(fn issue ->
-      assert issue.message =~ "Use `assert status` instead of verbose nil comparison"
+      assert issue.message =~ "Use `refute is_nil(status)` instead of verbose nil comparison"
     end)
   end
 
@@ -93,8 +93,8 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
     |> assert_issues(fn issues ->
       assert length(issues) == 2
       messages = Enum.map(issues, & &1.message)
-      assert Enum.any?(messages, &String.contains?(&1, "assert result"))
-      assert Enum.any?(messages, &String.contains?(&1, "refute empty_result"))
+      assert Enum.any?(messages, &String.contains?(&1, "refute is_nil(result)"))
+      assert Enum.any?(messages, &String.contains?(&1, "assert is_nil(empty_result)"))
     end)
   end
 
@@ -112,8 +112,8 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
     |> assert_issues(fn issues ->
       assert length(issues) == 2
       messages = Enum.map(issues, & &1.message)
-      assert Enum.any?(messages, &String.contains?(&1, "assert user.profile.avatar"))
-      assert Enum.any?(messages, &String.contains?(&1, "refute Map.get(data, :key)"))
+      assert Enum.any?(messages, &String.contains?(&1, "refute is_nil(user.profile.avatar)"))
+      assert Enum.any?(messages, &String.contains?(&1, "assert is_nil(Map.get(data, :key))"))
     end)
   end
 
@@ -179,8 +179,8 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
     |> assert_issues(fn issues ->
       assert length(issues) == 2
       messages = Enum.map(issues, & &1.message)
-      assert Enum.any?(messages, &String.contains?(&1, "assert get_user(id)"))
-      assert Enum.any?(messages, &String.contains?(&1, "assert find_by_email(email)"))
+      assert Enum.any?(messages, &String.contains?(&1, "refute is_nil(get_user(id))"))
+      assert Enum.any?(messages, &String.contains?(&1, "refute is_nil(find_by_email(email))"))
     end)
   end
 
@@ -195,7 +195,29 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertionsTest do
     |> to_source_file()
     |> run_check(VerboseAssertions)
     |> assert_issue(fn issue ->
-      assert issue.message =~ "assert user |> get_profile()"
+      assert issue.message =~ "refute is_nil(user |> get_profile())"
     end)
+  end
+
+  test "recommendations preserve the meaning of false-valued expressions" do
+    """
+    defmodule PredicateTest do
+      test "false is present" do
+        assert value != nil
+        refute value == nil
+      end
+    end
+    """
+    |> to_source_file()
+    |> run_check(VerboseAssertions)
+    |> assert_issues(fn issues ->
+      assert length(issues) == 2
+      assert Enum.all?(issues, &String.contains?(&1.message, "refute is_nil(value)"))
+    end)
+
+    value = Enum.at([false], 0)
+    assert value != nil
+    refute value == nil
+    refute is_nil(value)
   end
 end

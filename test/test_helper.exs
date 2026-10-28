@@ -1,2 +1,2 @@
 ExUnit.start()
-{:ok, _} = Application.ensure_all_started(:credo)
+{:ok, _value} = Application.ensure_all_started(:credo)

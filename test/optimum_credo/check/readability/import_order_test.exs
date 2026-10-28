@@ -1,5 +1,5 @@
 defmodule OptimumCredo.Check.Readability.ImportOrderTest do
-  use Credo.Test.Case
+  use Credo.Test.Case, async: true
 
   alias OptimumCredo.Check.Readability.ImportOrder
 

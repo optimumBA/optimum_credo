@@ -42,9 +42,7 @@
       # If you create your own checks, you must specify the source files for
       # them here, so they can be loaded by Credo before running the analysis.
       #
-      requires: [
-        "deps/optimum_credo/lib/credo/check/**/*.ex",
-      ],
+      requires: [],
       #
       # If you want to enforce a style guide and need a more traditional linting
       # experience, you can change `strict` to `true` below:
@@ -87,15 +85,15 @@
           #
           {Credo.Check.Design.AliasUsage,
            [
-            priority: :low,
-            if_nested_deeper_than: 2,
-            if_called_more_often_than: 0,
-            files: %{
-              excluded: [
-                ~r"lib/.*/components/core_components\.ex$"
-              ]
-            }
-          ]},
+             priority: :low,
+             if_nested_deeper_than: 2,
+             if_called_more_often_than: 0,
+             files: %{
+               excluded: [
+                 ~r"lib/.*/components/core_components\.ex$"
+               ]
+             }
+           ]},
 
           # You can also customize the exit_status of each check.
           # If you don't want TODO comments to cause `mix credo` to fail, just
@@ -144,12 +142,11 @@
           {Credo.Check.Refactor.NegatedConditionsInUnless, []},
           {Credo.Check.Refactor.NegatedConditionsWithElse, []},
           {Credo.Check.Refactor.Nesting,
-            files: %{
-              excluded: [
-                "lib/credo/check/readability/typespec_order.ex"
-              ]
-            }
-          },
+           files: %{
+             excluded: [
+               "lib/credo/check/readability/typespec_order.ex"
+             ]
+           }},
           {Credo.Check.Refactor.RedundantWithClauseResult, []},
           {Credo.Check.Refactor.RejectReject, []},
           {Credo.Check.Refactor.UnlessWithElse, []},
@@ -201,21 +198,22 @@
           {Credo.Check.Readability.SeparateAliasRequire, []},
           {Credo.Check.Readability.SingleFunctionToBlockPipe, []},
           {Credo.Check.Readability.SinglePipe, []},
-          {Credo.Check.Readability.Specs, files: %{
-            excluded: [
-              ~r"lib/.*_web\.ex$",
-              ~r"lib/.*/components/core_components\.ex$",
-              ~r"lib/.*/controllers/error_html\.ex$",
-              ~r"lib/.*/controllers/error_json\.ex$"
-            ]
-          }},
+          {Credo.Check.Readability.Specs,
+           files: %{
+             excluded: [
+               ~r"lib/.*_web\.ex$",
+               ~r"lib/.*/components/core_components\.ex$",
+               ~r"lib/.*/controllers/error_html\.ex$",
+               ~r"lib/.*/controllers/error_json\.ex$"
+             ]
+           }},
           {Credo.Check.Readability.StrictModuleLayout,
            order: [:shortdoc, :moduledoc, :use, :import, :alias, :require, :behaviour]},
           {Credo.Check.Readability.WithCustomTaggedTuple, []},
           {Credo.Check.Refactor.ABCSize,
            files: %{
              excluded: [
-              "lib/credo/check/readability/typespec_order.ex"
+               "lib/credo/check/readability/typespec_order.ex"
              ]
            }},
           {Credo.Check.Refactor.AppendSingleItem, []},
@@ -224,15 +222,15 @@
           {Credo.Check.Refactor.IoPuts, []},
           {Credo.Check.Refactor.MapMap, []},
           {Credo.Check.Refactor.ModuleDependencies,
-          files: %{
-            excluded: [
-              ~r"lib/.*_web/endpoint\.ex$",
-              ~r"lib/.*_web/router\.ex$",
-              ~r"lib/.*_web\.ex$",
-              ~r"lib/.*/application\.ex$"
-            ]
-          },
-          max_deps: 20},
+           files: %{
+             excluded: [
+               ~r"lib/.*_web/endpoint\.ex$",
+               ~r"lib/.*_web/router\.ex$",
+               ~r"lib/.*_web\.ex$",
+               ~r"lib/.*/application\.ex$"
+             ]
+           },
+           max_deps: 20},
           {Credo.Check.Refactor.NegatedIsNil, []},
           {Credo.Check.Refactor.PassAsyncInTestCases, []},
           {Credo.Check.Refactor.PipeChainStart, []},

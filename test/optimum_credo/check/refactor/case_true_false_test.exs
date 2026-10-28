@@ -1,5 +1,5 @@
 defmodule OptimumCredo.Check.Refactor.CaseTrueFalseTest do
-  use Credo.Test.Case
+  use Credo.Test.Case, async: true
 
   alias OptimumCredo.Check.Refactor.CaseTrueFalse
 

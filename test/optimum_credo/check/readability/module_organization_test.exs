@@ -1,5 +1,5 @@
 defmodule OptimumCredo.Check.Readability.ModuleOrganizationTest do
-  use Credo.Test.Case
+  use Credo.Test.Case, async: true
 
   alias OptimumCredo.Check.Readability.ModuleOrganization
 

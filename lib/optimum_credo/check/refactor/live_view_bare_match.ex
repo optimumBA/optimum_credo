@@ -44,11 +44,14 @@ defmodule OptimumCredo.Check.Refactor.LiveViewBareMatch do
     ]
 
   @doc false
+  @spec run(Credo.SourceFile.t(), keyword()) :: [Credo.Issue.t()]
   def run(%Credo.SourceFile{} = source_file, params) do
     issue_meta = IssueMeta.for(source_file, params)
 
-    source_file
-    |> Credo.Code.prewalk(&traverse(&1, &2, issue_meta))
+    Credo.Code.prewalk(
+      source_file,
+      &traverse(&1, &2, issue_meta)
+    )
   end
 
   defp traverse({:defmodule, _meta, _children} = ast, issues, issue_meta) do
@@ -66,20 +69,22 @@ defmodule OptimumCredo.Check.Refactor.LiveViewBareMatch do
 
   # Detect if a defmodule uses Phoenix.LiveView or Phoenix.LiveComponent
   defp live_view_module?({:defmodule, _meta, [_name, [do: body]]}) do
-    body |> Macro.prewalk(false, &detect_live_view_use/2) |> elem(1)
+    body
+    |> Macro.prewalk(false, &detect_live_view_use/2)
+    |> elem(1)
   end
 
-  defp live_view_module?(_), do: false
+  defp live_view_module?(_ignored), do: false
 
   defp detect_live_view_use(
-         {:use, _meta, [{:__aliases__, _, [:Phoenix, :LiveView]} | _]},
+         {:use, _meta, [{:__aliases__, _alias_meta, [:Phoenix, :LiveView]} | _tail]},
          _acc
        ) do
     {nil, true}
   end
 
   defp detect_live_view_use(
-         {:use, _meta, [{:__aliases__, _, [:Phoenix, :LiveComponent]} | _]},
+         {:use, _meta, [{:__aliases__, _alias_meta, [:Phoenix, :LiveComponent]} | _tail]},
          _acc
        ) do
     {nil, true}
@@ -129,7 +134,7 @@ defmodule OptimumCredo.Check.Refactor.LiveViewBareMatch do
 
   # {:ok, var1, var2} = expr (3-tuple)
   defp check_bare_match(
-         {:=, meta, [{{:ok, _, _}, _inner1, _inner2}, _rhs]},
+         {:=, meta, [{{:ok, _meta, _args}, _inner1, _inner2}, _rhs]},
          issue_meta
        ) do
     issue_for(issue_meta, meta[:line], "{:ok, _, _} =")

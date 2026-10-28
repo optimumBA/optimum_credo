@@ -1,5 +1,5 @@
 defmodule OptimumCredo.Check.Readability.ExtractableSpecTypesTest do
-  use Credo.Test.Case
+  use Credo.Test.Case, async: true
 
   alias OptimumCredo.Check.Readability.ExtractableSpecTypes
 
@@ -200,5 +200,106 @@ defmodule OptimumCredo.Check.Readability.ExtractableSpecTypesTest do
     |> to_source_file()
     |> run_check(ExtractableSpecTypes)
     |> refute_issues()
+  end
+
+  describe "false-positive regressions" do
+    test "does not crash on or report __MODULE__.t() and Erlang module types" do
+      """
+      defmodule MyModule do
+        @spec first(__MODULE__.t()) :: __MODULE__.Nested.t()
+        def first(value), do: value
+
+        @spec table(:ets.t()) :: :ok
+        def table(_table), do: :ok
+      end
+      """
+      |> to_source_file()
+      |> run_check(ExtractableSpecTypes)
+      |> refute_issues()
+    end
+
+    test "does not ask to extract a type the module already aliases under another name" do
+      """
+      defmodule MyModule do
+        @type attrs :: map()
+
+        @spec create(attrs()) :: :ok
+        def create(_attrs), do: :ok
+
+        @spec update(map()) :: :ok
+        def update(_attrs), do: :ok
+      end
+      """
+      |> to_source_file()
+      |> run_check(ExtractableSpecTypes)
+      |> refute_issues()
+    end
+
+    test "sees types defined outside the conditional that holds the specs" do
+      """
+      defmodule MyModule do
+        @type params :: map()
+
+        if Mix.env() == :test do
+          @spec run(map()) :: :ok
+          def run(_params), do: :ok
+        end
+      end
+      """
+      |> to_source_file()
+      |> run_check(ExtractableSpecTypes)
+      |> refute_issues()
+    end
+
+    test "checks nested modules on their own" do
+      """
+      defmodule Outer do
+        @type params :: map()
+
+        defmodule Inner do
+          @spec run(map()) :: :ok
+          def run(_params), do: :ok
+        end
+      end
+      """
+      |> to_source_file()
+      |> run_check(ExtractableSpecTypes)
+      |> assert_issue(&(&1.message =~ "Extract common type 'map()'"))
+    end
+  end
+
+  test "suggested aliases for built-in types compile instead of redefining built-ins" do
+    fixtures = [
+      {"list()", BuiltinListAliasFixture},
+      {"tuple()", BuiltinTupleAliasFixture},
+      {"pid()", BuiltinPidAliasFixture},
+      {"reference()", BuiltinReferenceAliasFixture},
+      {"binary()", BuiltinBinaryAliasFixture},
+      {"MyApp.Map.t()", RemoteMapAliasFixture},
+      {"MyApp.Keyword.t()", RemoteKeywordAliasFixture},
+      {"MyApp.Timeout.t()", RemoteTimeoutAliasFixture}
+    ]
+
+    for {type, fixture} <- fixtures do
+      [issue] =
+        """
+        defmodule Example do
+          @spec echo(#{type}) :: #{type}
+          def echo(value), do: value
+        end
+        """
+        |> to_source_file()
+        |> run_check(ExtractableSpecTypes)
+
+      [_first, declaration] = Regex.run(~r/'(@type[^']+)'$/, issue.message)
+
+      try do
+        assert [{^fixture, _binary}] =
+                 Code.compile_string("defmodule #{inspect(fixture)} do\n#{declaration}\nend")
+      after
+        :code.purge(fixture)
+        :code.delete(fixture)
+      end
+    end
   end
 end

@@ -1,268 +1,124 @@
 # OptimumCredo
 
-Custom Credo checks for Elixir projects to enforce code quality and consistency patterns that reduce manual code review cycles.
+Custom Credo checks for Elixir code-review conventions: module organization,
+readability, test design, Phoenix, migrations, configuration and Ash.
 
-## Features
+This working tree contains unreleased checks; publication is pending.
 
-This package provides custom Credo checks to automatically catch common code quality issues:
+## Start here
 
-- **Readability checks** for better code organization and patterns
-- **Type safety improvements** for better documentation and maintainability
-- **Assertion pattern simplifications** for more idiomatic test code
+- [Check catalog](docs/checks.md): each detector's behavior, defaults and source.
+- [Explicit configuration example](docs/configuration.md): all available checks;
+  select the checks and parameters that fit your application.
+- [Migration guide](docs/migration.md): checks extracted into KogenCredo.
+- [Changelog](CHANGELOG.md): released changes and unreleased work.
 
 ## Installation
 
-Add the `:optimum_credo` package to your `mix.exs` dependencies:
+Requires Credo 1.7.19 or newer in the 1.x series. When adopting this version,
+update Credo together with it; an older locked Credo does not provide the token
+metadata these checks need, and older releases cannot lint Elixir 1.20 reliably.
+
+Until publication, use a sibling checkout:
 
 ```elixir
-def deps do
+defp deps do
   [
-    {:optimum_credo, "~> 0.1", only: [:dev, :test], runtime: false},
+    {:optimum_credo, path: "../optimum_credo", only: [:dev, :test], runtime: false}
   ]
 end
 ```
 
-## Usage
-
-Add the checks you want in your `.credo.exs` configuration file:
+Select checks explicitly in `.credo.exs`:
 
 ```elixir
 %{
   configs: [
     %{
       name: "default",
-      requires: ["./deps/optimum_credo/lib/**/*.ex"],
-      checks: [
-        # Existing Credo checks...
-
-        # OptimumCredo checks
-        {OptimumCredo.Check.Readability.ModuleOrganization, []},
-        {OptimumCredo.Check.Readability.DocumentationFormatting, []},
-        {OptimumCredo.Check.Readability.UnusedTypes, []},
-        {OptimumCredo.Check.Readability.VerboseAssertions, []},
-        {OptimumCredo.Check.Readability.ExtractableSpecTypes, []},
-        {OptimumCredo.Check.Readability.PrivateFunctionSpecs, []},
-
-        # Original checks
-        {OptimumCredo.Check.Readability.DepsOrder, []},
-        {OptimumCredo.Check.Readability.ImportOrder, []},
-        {OptimumCredo.Check.Readability.TypespecOrder, []},
-      ]
+      checks: %{
+        enabled: [
+          {OptimumCredo.Check.Readability.ModulePathMismatch, []},
+          {OptimumCredo.Check.Readability.SpecWithImpl, []},
+          {OptimumCredo.Check.Warning.CallerModuleAttributes,
+           [required_prefix: "my_library", allow_attributes: [:public_config]]}
+        ]
+      }
     }
   ]
 }
 ```
 
-Then you can run `mix credo` as usual.
+Run `mix credo --strict` to include low-priority advice. Loading the library does
+not automatically enable every check. Heuristic findings need review; a warning
+is not proof of a bug. Projects can enable OptimumCredo and KogenCredo together;
+neither package depends on the other.
 
-## Available Checks
+## Configuration boundaries
 
-### Readability
+Ordering and naming preferences vary. Configure the relevant parameters rather
+than assuming every rule applies to every project. `FunctionOrder` requires an
+explicit ordering mode. Domain and namespace checks need application-appropriate
+paths and names. Ash checks are intended for applications that use Ash.
 
-#### ModuleOrganization
+`CallerModuleAttributes` is opt-in for macro/DSL library authors. It inspects
+literal caller attributes in quoted code and caller-targeted module-attribute
+operations. It supports an owner prefix and an allow-list for intentional public
+contracts; it does not expand arbitrary macros or prove absence of all collisions.
 
-Enforces blank line separation between different statement types (`use`, `import`, `alias`, `require`).
+HEEx detectors inspect `~H` sigils through Credo. Stock Credo excludes standalone
+`.heex` files as invalid Elixir, so scan those templates separately:
 
-**Bad:**
-
-```elixir
-defmodule MyModule do
-  use Supervisor
-  import Telemetry.Metrics
-  alias MyApp.SomeModule
-end
+```sh
+mix optimum.heex_check
+mix optimum.heex_check lib/ --format json --advisory
 ```
 
-**Good:**
+That command runs the asset-path, hidden-id and event-name checks directly on
+raw templates without compiling Phoenix or evaluating template code. Explicit
+missing paths, read failures, invalid options and detector errors are errors;
+`--advisory` suppresses only the findings exit status. Template findings remain
+static hints, not authorization or security proofs.
 
-```elixir
-defmodule MyModule do
-  use Supervisor
+## Development
 
-  import Telemetry.Metrics
-
-  alias MyApp.SomeModule
-end
-```
-
-#### DocumentationFormatting
-
-Ensures proper spacing in function documentation, specifically blank lines after section headers.
-
-**Bad:**
-
-```elixir
-@doc """
-Returns the index URL.
-
-## Examples
-iex> index_url()
-"http://localhost:4000/index.md"
-"""
-```
-
-**Good:**
-
-```elixir
-@doc """
-Returns the index URL.
-
-## Examples
-
-iex> index_url()
-"http://localhost:4000/index.md"
-"""
-```
-
-#### UnusedTypes
-
-Detects `@type` definitions that are never used in the module.
-
-**Bad:**
-
-```elixir
-@type short_id :: String.t()  # Never used
-@type conn :: Plug.Conn.t()
-
-@spec index(conn()) :: conn()
-def index(conn), do: conn
-```
-
-**Good:**
-
-```elixir
-@type conn :: Plug.Conn.t()
-
-@spec index(conn()) :: conn()
-def index(conn), do: conn
-```
-
-#### VerboseAssertions
-
-Detects verbose assertion patterns that can be simplified to idiomatic Elixir.
-
-**Bad:**
-
-```elixir
-assert drop.id != nil
-assert user.name == nil
-refute item.id != nil
-```
-
-**Good:**
-
-```elixir
-assert drop.id
-refute user.name
-refute item.id
-```
-
-#### ExtractableSpecTypes
-
-Enforces extraction of common types in `@spec` declarations to semantic module-level type aliases.
-
-**Bad:**
-
-```elixir
-@spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
-@spec index(Plug.Conn.t()) :: Plug.Conn.t()
-```
-
-**Good:**
-
-```elixir
-@type conn :: Plug.Conn.t()
-@type params :: map()
-
-@spec show(conn(), params()) :: conn()
-@spec index(conn()) :: conn()
-```
-
-#### PrivateFunctionSpecs
-
-Detects `@spec` declarations for private functions, which should not have specs.
-
-**Bad:**
-
-```elixir
-@spec lookup_cached_entries(list()) :: {:hit, content()} | :miss
-defp lookup_cached_entries(ets_match_spec) do
-  # ...
-end
-```
-
-**Good:**
-
-```elixir
-defp lookup_cached_entries(ets_match_spec) do
-  # ...
-end
-```
-
-#### DepsOrder (Original)
-
-Enforces alphabetical ordering of dependencies in `app_deps` and `optimum_deps` functions.
-
-#### ImportOrder (Original)
-
-Enforces alphabetical ordering of import statements.
-
-#### TypespecOrder (Original)
-
-Enforces alphabetical ordering of typespec definitions.
-
-#### EmptySetupBlock
-
-Detects empty `setup` blocks in test files (`setup do :ok end`, `setup do end`, `setup do {:ok, %{}} end`) that add noise without providing test setup value. File-scoped to `*_test.exs` files and `test/support/`.
-
-### Warning
-
-#### SkippedTest
-
-Detects `@tag :skip`, `@tag skip: true`, `@moduletag :skip`, and related annotations that hide failing tests. Supports an `allow_with_comment: true` param to exempt tags that carry an inline explanatory comment.
-
-#### RuntimeEnvDevDefault
-
-Detects `System.get_env("VAR", "/Users/...")` calls in `config/runtime.exs` where the default is a developer-machine path (`/Users/`, `/home/`, `~/`). Such defaults silently break on production servers. File-scoped to `config/runtime.exs`.
-
-### Refactoring
-
-#### LiveViewBareMatch
-
-Detects bare `{:ok, _} =` and `{:error, _} =` pattern matches in LiveView modules that crash the process on failure.
-
-#### CaseTrueFalse
-
-Detects `case` expressions with exactly two clauses matching literal `true` and `false` (no wildcards), suggesting replacement with an `if` expression for clarity.
-
-## Benefits
-
-1. **Reduces Manual Review Cycles**: Catches trivial formatting issues automatically
-2. **Enforces Team Standards**: Consistent code organization across projects
-3. **Speeds Up Development**: Less back-and-forth on style issues
-4. **Improves Type Safety**: Better documentation and semantic meaning through type aliases
-
-## Testing
-
-Run the test suite:
-
-```bash
+```sh
+mix deps.get
 mix test
+mix format --check-formatted
+mix compile --warnings-as-errors
+mix credo --strict
 ```
 
-## Contributing
+Consumer-derived regression cases include quoted/DSL code, Phoenix contracts,
+arity-specific specs and migration nullability replay. `UnusedTypes` defaults to
+ignoring the conventional public `t` type (`ignored_types`); schema table checks
+can accept their containing context prefix with `allow_context_prefix: true`.
+`VerboseAssertions` suggests explicit nil predicates, preserving false-valued
+results. `TestNameLowercase` accepts CamelCase identifiers by default through
+`allow_camel_case`.
 
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for your changes
-4. Ensure all tests pass
-5. Submit a pull request
+`RequiredFieldConsistency` also recognizes literal context-owned association chains
+such as `Comment.changeset(attrs) |> Ecto.Changeset.put_assoc(:user, user)` in the
+same project's `lib/` sources. Dynamic dispatch and separated helper calls remain
+outside its static scope. `DescribeWithoutErrorCase` accepts a concrete documented
+boundary inside one describe via `@describetag error_path_exemption: "reason"`.
+Use that only for total operations or to identify separate failure coverage;
+missing meaningful failure tests should be added instead.
+
+The checked-in self-lint policy passes `mix credo --strict` with no findings.
+Test/format/compile success does not by itself establish lint success, so run all
+four commands above before publishing a change.
+
+Each check has tests for violations and valid lookalikes. Run the suite on the
+supported Elixir versions before publishing a change, especially when the parser's
+AST metadata changes. Keep private review material out of shipped examples.
+
+Folder map: `lib/optimum_credo/check/` owns detectors; other modules under
+`lib/optimum_credo/` own shared AST helpers; `test/` owns regression coverage;
+`docs/` owns the catalog and migration guide. The root README owns navigation and
+development entry points.
 
 ## License
 
-This project is licensed under the MIT License.
-## KogenCredo extraction
-
-`EmptySetupBlock`, `RuntimeEnvDevDefault` and `SkippedTest` move to KogenCredo
-in the next release. Add KogenCredo and rename the enabled modules as described
-in the [migration guide](docs/migration.md). Publish Kogen before this extraction.
+MIT. See [LICENSE](LICENSE).

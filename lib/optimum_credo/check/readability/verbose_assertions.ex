@@ -2,9 +2,9 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertions do
   @moduledoc """
   A check that finds verbose assertion patterns that can be simplified.
 
-  This check identifies assertion patterns like `assert value != nil` and
-  `assert value == nil` that should be simplified to `assert value` and
-  `refute value` respectively.
+  This check prefers explicit `is_nil/1` assertions over equality comparisons with nil.
+  Suggestions preserve the distinction between `false` and `nil`; replacing a nil
+  comparison with a bare truthiness assertion can change what the test verifies.
   """
 
   use Credo.Check,
@@ -12,8 +12,8 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertions do
     category: :readability,
     explanations: [
       check: """
-      Assertion patterns should use Elixir's idiomatic assert/refute instead
-      of verbose comparisons with nil.
+      Assertion patterns should use explicit `is_nil/1` predicates instead
+      of equality comparisons with nil.
 
       ## Examples
 
@@ -27,22 +27,26 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertions do
 
       **Good:**
       ```elixir
-      assert drop.id
-      refute user.name
-      refute item.id
-      assert status
+      refute is_nil(drop.id)
+      assert is_nil(user.name)
+      assert is_nil(item.id)
+      refute is_nil(status)
       ```
 
-      Use `is_nil(value)` only when you specifically need to distinguish nil from false.
+      Bare `assert value` and `refute value` also reject or accept `false`, respectively,
+      so they are not equivalent to nil comparisons. Keep the nil predicate explicit.
       """
     ]
 
   @doc false
+  @spec run(Credo.SourceFile.t(), keyword()) :: [Credo.Issue.t()]
   def run(%Credo.SourceFile{} = source_file, params) do
     issue_meta = IssueMeta.for(source_file, params)
 
-    source_file
-    |> Credo.Code.prewalk(&traverse(&1, &2, issue_meta))
+    Credo.Code.prewalk(
+      source_file,
+      &traverse(&1, &2, issue_meta)
+    )
   end
 
   defp traverse(ast, issues, issue_meta) do
@@ -85,73 +89,73 @@ defmodule OptimumCredo.Check.Readability.VerboseAssertions do
   defp check_verbose_assertions(_ast, _issue_meta), do: []
 
   defp check_nil_comparison({:!=, _meta, [left, nil]}) do
-    {:verbose, "assert #{Macro.to_string(left)}"}
+    {:verbose, "refute is_nil(#{Macro.to_string(left)})"}
   end
 
   defp check_nil_comparison({:==, _meta, [left, nil]}) do
-    {:verbose, "refute #{Macro.to_string(left)}"}
+    {:verbose, "assert is_nil(#{Macro.to_string(left)})"}
   end
 
-  defp check_nil_comparison({:!=, _meta, [left, {:__aliases__, _, [nil]}]}) do
-    {:verbose, "assert #{Macro.to_string(left)}"}
+  defp check_nil_comparison({:!=, _meta, [left, {:__aliases__, _alias_meta, [nil]}]}) do
+    {:verbose, "refute is_nil(#{Macro.to_string(left)})"}
   end
 
-  defp check_nil_comparison({:==, _meta, [left, {:__aliases__, _, [nil]}]}) do
-    {:verbose, "refute #{Macro.to_string(left)}"}
+  defp check_nil_comparison({:==, _meta, [left, {:__aliases__, _alias_meta, [nil]}]}) do
+    {:verbose, "assert is_nil(#{Macro.to_string(left)})"}
   end
 
   # Handle cases where nil is on the left side
   defp check_nil_comparison({:!=, _meta, [nil, right]}) do
-    {:verbose, "assert #{Macro.to_string(right)}"}
+    {:verbose, "refute is_nil(#{Macro.to_string(right)})"}
   end
 
   defp check_nil_comparison({:==, _meta, [nil, right]}) do
-    {:verbose, "refute #{Macro.to_string(right)}"}
+    {:verbose, "assert is_nil(#{Macro.to_string(right)})"}
   end
 
-  defp check_nil_comparison({:!=, _meta, [{:__aliases__, _, [nil]}, right]}) do
-    {:verbose, "assert #{Macro.to_string(right)}"}
+  defp check_nil_comparison({:!=, _meta, [{:__aliases__, _alias_meta, [nil]}, right]}) do
+    {:verbose, "refute is_nil(#{Macro.to_string(right)})"}
   end
 
-  defp check_nil_comparison({:==, _meta, [{:__aliases__, _, [nil]}, right]}) do
-    {:verbose, "refute #{Macro.to_string(right)}"}
+  defp check_nil_comparison({:==, _meta, [{:__aliases__, _alias_meta, [nil]}, right]}) do
+    {:verbose, "assert is_nil(#{Macro.to_string(right)})"}
   end
 
-  defp check_nil_comparison(_), do: :ok
+  defp check_nil_comparison(_ignored), do: :ok
 
   defp check_nil_comparison_for_refute({:!=, _meta, [left, nil]}) do
-    {:verbose, "refute #{Macro.to_string(left)}"}
+    {:verbose, "assert is_nil(#{Macro.to_string(left)})"}
   end
 
   defp check_nil_comparison_for_refute({:==, _meta, [left, nil]}) do
-    {:verbose, "assert #{Macro.to_string(left)}"}
+    {:verbose, "refute is_nil(#{Macro.to_string(left)})"}
   end
 
-  defp check_nil_comparison_for_refute({:!=, _meta, [left, {:__aliases__, _, [nil]}]}) do
-    {:verbose, "refute #{Macro.to_string(left)}"}
+  defp check_nil_comparison_for_refute({:!=, _meta, [left, {:__aliases__, _alias_meta, [nil]}]}) do
+    {:verbose, "assert is_nil(#{Macro.to_string(left)})"}
   end
 
-  defp check_nil_comparison_for_refute({:==, _meta, [left, {:__aliases__, _, [nil]}]}) do
-    {:verbose, "assert #{Macro.to_string(left)}"}
+  defp check_nil_comparison_for_refute({:==, _meta, [left, {:__aliases__, _alias_meta, [nil]}]}) do
+    {:verbose, "refute is_nil(#{Macro.to_string(left)})"}
   end
 
   defp check_nil_comparison_for_refute({:!=, _meta, [nil, right]}) do
-    {:verbose, "refute #{Macro.to_string(right)}"}
+    {:verbose, "assert is_nil(#{Macro.to_string(right)})"}
   end
 
   defp check_nil_comparison_for_refute({:==, _meta, [nil, right]}) do
-    {:verbose, "assert #{Macro.to_string(right)}"}
+    {:verbose, "refute is_nil(#{Macro.to_string(right)})"}
   end
 
-  defp check_nil_comparison_for_refute({:!=, _meta, [{:__aliases__, _, [nil]}, right]}) do
-    {:verbose, "refute #{Macro.to_string(right)}"}
+  defp check_nil_comparison_for_refute({:!=, _meta, [{:__aliases__, _alias_meta, [nil]}, right]}) do
+    {:verbose, "assert is_nil(#{Macro.to_string(right)})"}
   end
 
-  defp check_nil_comparison_for_refute({:==, _meta, [{:__aliases__, _, [nil]}, right]}) do
-    {:verbose, "assert #{Macro.to_string(right)}"}
+  defp check_nil_comparison_for_refute({:==, _meta, [{:__aliases__, _alias_meta, [nil]}, right]}) do
+    {:verbose, "refute is_nil(#{Macro.to_string(right)})"}
   end
 
-  defp check_nil_comparison_for_refute(_), do: :ok
+  defp check_nil_comparison_for_refute(_ignored), do: :ok
 
   defp issue_for(issue_meta, line_no, message) do
     format_issue(

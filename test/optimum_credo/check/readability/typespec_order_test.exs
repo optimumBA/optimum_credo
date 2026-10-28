@@ -1,5 +1,5 @@
 defmodule OptimumCredo.Check.Readability.TypespecOrderTest do
-  use Credo.Test.Case
+  use Credo.Test.Case, async: true
 
   alias OptimumCredo.Check.Readability.TypespecOrder
 

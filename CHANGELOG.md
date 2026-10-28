@@ -2,7 +2,12 @@
 
 ## Unreleased
 
-- **BREAKING:** Moved `EmptySetupBlock`, `RuntimeEnvDevDefault` and `SkippedTest` to KogenCredo. See `docs/migration.md` for the required dependency and configuration changes.
+- Added the complete review-derived check collection: 74 checks for readability, module organization, tests, Phoenix, configuration, migrations and optional Ash policies. See `docs/checks.md` for behavior and parameters.
+- Added `mix optimum.heex_check` to scan standalone HEEx templates and the opt-in `CallerModuleAttributes` check for macro and DSL libraries.
+- Fixed false positives in types and specs, quoted and DSL code, Phoenix callbacks, schema migration replay, dependency requirements, Ecto lock clauses, test naming and paths. Added context-owned association recognition and documented describe-level error-path exemptions.
+- Kept source-derived identities as strings instead of allocating atoms; inspected installed BEAM metadata without loading modules and supported long paths on older OTP versions.
+- Fixed Credo JSON diagnostics and Elixir 1.20 compatibility. Require Credo 1.7.19 or newer within 1.x.
+- **BREAKING:** Moved `EmptySetupBlock`, `RuntimeEnvDevDefault` and `SkippedTest` from OptimumCredo to KogenCredo. The previously unreleased `JustifiedCoverageIgnore` also belongs to KogenCredo. Add KogenCredo and update enabled module names as described in `docs/migration.md`; old names no longer run.
 
 ## 0.4.0 (2026-04-29)
 

@@ -79,27 +79,35 @@ defmodule OptimumCredo.Check.Readability.TypespecOrder do
 
   defp collect_type_definitions(tokens) do
     tokens
-    |> Enum.reduce({1, [], []}, fn
-      {:eol, {line, _col1, _meta1}, _value}, {_curr_line, curr_line_tokens, lines} ->
-        {line + 1, [], [Enum.reverse(curr_line_tokens) | lines]}
-
-      token = {_type, {line, _col2, _meta2}, _value}, {curr_line, curr_line_tokens, lines} ->
-        if line == curr_line do
-          {curr_line, [token | curr_line_tokens], lines}
-        else
-          {line, [token],
-           if(curr_line_tokens == [], do: lines, else: [Enum.reverse(curr_line_tokens) | lines])}
-        end
-
-      token, {curr_line, curr_line_tokens, lines} ->
-        {curr_line, [token | curr_line_tokens], lines}
-    end)
-    |> then(fn {_curr_line, last_line, lines} ->
-      if last_line == [], do: lines, else: [Enum.reverse(last_line) | lines]
-    end)
+    |> Enum.reduce({1, [], []}, &group_token/2)
+    |> finish_lines()
     |> Enum.reverse()
-    |> Enum.flat_map(fn line_tokens -> extract_types_from_line(line_tokens) end)
+    |> Enum.flat_map(&extract_types_from_line/1)
   end
+
+  defp group_token({:eol, {line, _col1, _meta1}, _value}, {_curr_line, curr_line_tokens, lines}) do
+    {line + 1, [], [Enum.reverse(curr_line_tokens) | lines]}
+  end
+
+  defp group_token(
+         {_type, {line, _col2, _meta2}, _value} = token,
+         {curr_line, curr_line_tokens, lines}
+       ) do
+    if line == curr_line do
+      {curr_line, [token | curr_line_tokens], lines}
+    else
+      {line, [token], flush_line(curr_line_tokens, lines)}
+    end
+  end
+
+  defp group_token(token, {curr_line, curr_line_tokens, lines}) do
+    {curr_line, [token | curr_line_tokens], lines}
+  end
+
+  defp flush_line([], lines), do: lines
+  defp flush_line(line_tokens, lines), do: [Enum.reverse(line_tokens) | lines]
+
+  defp finish_lines({_curr_line, last_line, lines}), do: flush_line(last_line, lines)
 
   defp extract_types_from_line(line_tokens) do
     case line_tokens do
@@ -119,20 +127,22 @@ defmodule OptimumCredo.Check.Readability.TypespecOrder do
   defp group_type_definitions(definitions) do
     definitions
     |> Enum.sort_by(fn {_kind, line, _name} -> line end)
-    |> Enum.reduce([], fn
-      def = {_kind, _line, _name}, [] ->
-        [[def]]
-
-      def = {kind, line, _name},
-      [[{prev_kind, prev_line, _prev_name} | _rest] = group | groups] ->
-        if line > prev_line + 1 || kind != prev_kind do
-          [[def] | [group | groups]]
-        else
-          [[def | group] | groups]
-        end
-    end)
+    |> Enum.reduce([], &group_definition/2)
     |> Enum.map(&Enum.reverse/1)
     |> Enum.reverse()
+  end
+
+  defp group_definition({_kind, _line, _name} = definition, []), do: [[definition]]
+
+  defp group_definition(
+         {kind, line, _name} = definition,
+         [[{prev_kind, prev_line, _prev_name} | _rest] = group | groups]
+       ) do
+    if line > prev_line + 1 || kind != prev_kind do
+      [[definition] | [group | groups]]
+    else
+      [[definition | group] | groups]
+    end
   end
 
   defp check_ordering_in_groups(groups, sort_method, issue_meta) do

@@ -21,7 +21,14 @@ defmodule OptimumCredo.MixProject do
       name: "OptimumCredo",
       source_url: @repo,
       docs: [
-        extras: ["README.md"],
+        extras: [
+          "README.md",
+          "CHANGELOG.md",
+          "LICENSE",
+          "docs/configuration.md",
+          "docs/checks.md",
+          "docs/migration.md"
+        ],
         main: "readme",
         source_ref: "v#{@version}"
       ]
@@ -39,7 +46,7 @@ defmodule OptimumCredo.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:credo, "~> 1.7"},
+      {:credo, "~> 1.7 and >= 1.7.19"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end
@@ -47,6 +54,15 @@ defmodule OptimumCredo.MixProject do
   defp package do
     [
       licenses: ["MIT"],
+      files: [
+        "lib",
+        "docs",
+        ".credo.example.exs",
+        "mix.exs",
+        "README.md",
+        "LICENSE",
+        "CHANGELOG.md"
+      ],
       links: %{"GitHub" => @repo},
       maintainers: ["Almir Sarajčić"]
     ]

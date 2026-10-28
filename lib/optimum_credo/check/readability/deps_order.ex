@@ -69,7 +69,7 @@ defmodule OptimumCredo.Check.Readability.DepsOrder do
     |> Credo.Code.ast()
     |> find_deps_functions()
     |> Enum.flat_map(fn deps_function ->
-      check_deps_order(deps_function, issue_meta, sort_method)
+      check_deps_order(deps_function, issue_meta, sort_method, source_file)
     end)
   end
 
@@ -88,30 +88,49 @@ defmodule OptimumCredo.Check.Readability.DepsOrder do
   end
 
   defp check_deps_order(
-         {:defp, _meta,
+         {:defp, meta,
           [{function_name, _function_meta, _args}, [do: {:__block__, _block_meta, deps_list}]]},
          issue_meta,
-         sort_method
+         sort_method,
+         source_file
        ) do
-    check_deps_list(deps_list, function_name, issue_meta, sort_method)
+    function_line = meta[:line] || 1
+
+    check_deps_list(
+      deps_list,
+      function_name,
+      {source_file, function_line},
+      issue_meta,
+      sort_method
+    )
   end
 
   defp check_deps_order(
-         {:defp, _meta, [{function_name, _function_meta, _args}, [do: deps_list]]},
+         {:defp, meta, [{function_name, _function_meta, _args}, [do: deps_list]]},
          issue_meta,
-         sort_method
+         sort_method,
+         source_file
        )
        when is_list(deps_list) do
-    check_deps_list([deps_list], function_name, issue_meta, sort_method)
+    function_line = meta[:line] || 1
+
+    check_deps_list(
+      [deps_list],
+      function_name,
+      {source_file, function_line},
+      issue_meta,
+      sort_method
+    )
   end
 
-  defp check_deps_order(_node, _issue_meta, _sort_method), do: []
+  defp check_deps_order(_node, _issue_meta, _sort_method, _source_file), do: []
 
-  defp check_deps_list(deps_list, function_name, issue_meta, sort_method) do
+  defp check_deps_list(deps_list, function_name, position, issue_meta, sort_method) do
     deps =
       deps_list
       |> List.flatten()
       |> extract_deps()
+      |> fill_lines(position)
 
     case sort_method do
       :alpha -> check_alphabetical_order(deps, function_name, issue_meta)
@@ -123,17 +142,36 @@ defmodule OptimumCredo.Check.Readability.DepsOrder do
       # Match dependency tuple: {:dep_name, ...}
       {:{}, meta, [dep_name | _rest]} when is_atom(dep_name) ->
         dep_str = to_string(dep_name)
-        [{meta[:line] || 0, dep_str}]
+        [{meta[:line], dep_str}]
 
       # Match keyword syntax
-      {dep_name, _} when is_atom(dep_name) ->
+      {dep_name, _value} when is_atom(dep_name) ->
         dep_str = to_string(dep_name)
-        [{0, dep_str}]
+        [{nil, dep_str}]
 
       # Skip anything else
-      _ ->
+      _ignored ->
         []
     end)
+  end
+
+  # Two-element dependency tuples (`{:plug, "~> 1.14"}`) carry no line metadata in the AST,
+  # so their line is looked up in the source below the function head.
+  defp fill_lines(deps, {source_file, function_line}) do
+    lines =
+      source_file
+      |> SourceFile.lines()
+      |> Enum.filter(fn {line, _value} -> line >= function_line end)
+
+    Enum.map(deps, fn
+      {nil, name} -> {find_line(lines, name) || function_line, name}
+      known -> known
+    end)
+  end
+
+  defp find_line(lines, name) do
+    pattern = Regex.compile!("\\{:" <> Regex.escape(name) <> "\\b")
+    Enum.find_value(lines, fn {line, text} -> if Regex.match?(pattern, text), do: line end)
   end
 
   defp check_alphabetical_order(deps, function_name, issue_meta) do
@@ -142,7 +180,7 @@ defmodule OptimumCredo.Check.Readability.DepsOrder do
     |> Enum.filter(fn [{_line1, dep1}, {_line2, dep2}] ->
       String.downcase(dep1) > String.downcase(dep2)
     end)
-    |> Enum.map(fn [{line_no, dep_name} | _] ->
+    |> Enum.map(fn [_previous, {line_no, dep_name}] ->
       issue_for(issue_meta, line_no, dep_name, function_name)
     end)
   end
@@ -151,9 +189,8 @@ defmodule OptimumCredo.Check.Readability.DepsOrder do
     format_issue(
       issue_meta,
       message: "The dependency #{dep_name} in #{function_name}/0 is not alphabetically ordered.",
-      trigger: Credo.Issue.no_trigger(),
-      line_no: line_no,
-      column: 1
+      trigger: dep_name,
+      line_no: line_no
     )
   end
 end

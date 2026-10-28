@@ -1,5 +1,5 @@
 defmodule OptimumCredo.Check.Readability.PrivateFunctionSpecsTest do
-  use Credo.Test.Case
+  use Credo.Test.Case, async: true
 
   alias OptimumCredo.Check.Readability.PrivateFunctionSpecs
 
@@ -193,5 +193,81 @@ defmodule OptimumCredo.Check.Readability.PrivateFunctionSpecsTest do
     |> to_source_file()
     |> run_check(PrivateFunctionSpecs)
     |> refute_issues()
+  end
+
+  describe "false-positive regressions" do
+    test "does not report a public spec when a private function shares the name with another arity" do
+      """
+      defmodule MyModule do
+        @spec wait(term(), term()) :: :ok
+        def wait(a, b), do: wait(a, b, [])
+
+        defp wait(_a, _b, _errors), do: :ok
+      end
+      """
+      |> to_source_file()
+      |> run_check(PrivateFunctionSpecs)
+      |> refute_issues()
+    end
+
+    test "reports the spec of the private arity only" do
+      """
+      defmodule MyModule do
+        @spec wait(term(), term()) :: :ok
+        def wait(a, b), do: wait(a, b, [])
+
+        @spec wait(term(), term(), list()) :: :ok
+        defp wait(_a, _b, _errors), do: :ok
+      end
+      """
+      |> to_source_file()
+      |> run_check(PrivateFunctionSpecs)
+      |> assert_issue(fn issue -> assert issue.message =~ "private function wait/3" end)
+    end
+
+    test "matches private functions with default arguments and when specs" do
+      """
+      defmodule MyModule do
+        @spec build(a, keyword()) :: a when a: term()
+        defp build(value, opts \\\\ []), do: {value, opts}
+      end
+      """
+      |> to_source_file()
+      |> run_check(PrivateFunctionSpecs)
+      |> assert_issue(fn issue -> assert issue.message =~ "private function build/2" end)
+    end
+
+    test "finds private specs inside compile-time conditionals and distant from the function" do
+      """
+      defmodule MyModule do
+        if Mix.env() == :test do
+          @spec helper(integer()) :: integer()
+
+          def public, do: :ok
+
+          defp helper(x), do: x
+        end
+      end
+      """
+      |> to_source_file()
+      |> run_check(PrivateFunctionSpecs)
+      |> assert_issue(fn issue -> assert issue.message =~ "private function helper/1" end)
+    end
+
+    test "ignores quoted code and nested modules" do
+      """
+      defmodule MyModule do
+        defmacro __using__(_) do
+          quote do
+            @spec helper(integer()) :: integer()
+            defp helper(x), do: x
+          end
+        end
+      end
+      """
+      |> to_source_file()
+      |> run_check(PrivateFunctionSpecs)
+      |> refute_issues()
+    end
   end
 end

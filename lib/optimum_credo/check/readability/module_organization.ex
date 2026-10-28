@@ -43,11 +43,14 @@ defmodule OptimumCredo.Check.Readability.ModuleOrganization do
     ]
 
   @doc false
+  @spec run(Credo.SourceFile.t(), keyword()) :: [Credo.Issue.t()]
   def run(%Credo.SourceFile{} = source_file, params) do
     issue_meta = IssueMeta.for(source_file, params)
 
-    source_file
-    |> Credo.Code.prewalk(&traverse(&1, &2, issue_meta))
+    Credo.Code.prewalk(
+      source_file,
+      &traverse(&1, &2, issue_meta)
+    )
   end
 
   defp traverse({:defmodule, _meta, _children} = ast, issues, issue_meta) do
@@ -60,7 +63,7 @@ defmodule OptimumCredo.Check.Readability.ModuleOrganization do
   end
 
   defp check_module_organization(
-         {:defmodule, _meta, [_name, [do: {:__block__, [], statements}]]},
+         {:defmodule, _meta, [_name, [do: {:__block__, _block_meta, statements}]]},
          issue_meta
        ) do
     statements
@@ -97,7 +100,7 @@ defmodule OptimumCredo.Check.Readability.ModuleOrganization do
   defp get_statement_type({:import, _meta, _args}), do: "import"
   defp get_statement_type({:alias, _meta, _args}), do: "alias"
   defp get_statement_type({:require, _meta, _args}), do: "require"
-  defp get_statement_type(_), do: nil
+  defp get_statement_type(_ignored), do: nil
 
   defp should_have_blank_line?("use", next) do
     get_statement_type(next) in ["import", "alias", "require"]
@@ -111,7 +114,7 @@ defmodule OptimumCredo.Check.Readability.ModuleOrganization do
     get_statement_type(next) == "require"
   end
 
-  defp should_have_blank_line?(_, _), do: false
+  defp should_have_blank_line?(_ignored, _next), do: false
 
   defp get_line({_type, meta, _args}) do
     meta[:line] || 1
