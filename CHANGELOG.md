@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.0 (2026-10-28)
+
 - Added the complete review-derived check collection: 74 checks for readability, module organization, tests, Phoenix, configuration, migrations and optional Ash policies. See `docs/checks.md` for behavior and parameters.
 - Added `mix optimum.heex_check` to scan standalone HEEx templates and the opt-in `CallerModuleAttributes` check for macro and DSL libraries.
 - Fixed false positives in types and specs, quoted and DSL code, Phoenix callbacks, schema migration replay, dependency requirements, Ecto lock clauses, test naming and paths. Added context-owned association recognition and documented describe-level error-path exemptions.
