@@ -89,6 +89,9 @@ static hints, not authorization or security proofs.
 
 ## Development
 
+After `mix deps.get`, run `make ci` for formatting, compilation, tests,
+strict Credo and documentation checks. The individual commands are:
+
 ```sh
 mix deps.get
 mix test
